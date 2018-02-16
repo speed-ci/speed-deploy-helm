@@ -39,7 +39,7 @@ init_env
 
 TAG=${TAG:-"latest"}
 IMAGE=$ARTIFACTORY_DOCKER_REGISTRY/$PROJECT_NAMESPACE/$PROJECT_NAME:$TAG
-BRANCH=$(git branch)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
 BRANCH=${BRANCH:-"master"}
 
 echo ""
