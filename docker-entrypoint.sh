@@ -20,7 +20,7 @@ Options:
   -e ARTIFACTORY_PASSWORD=string                    Mot de passe d'accès à Artifactory
   --env-file ~/speed.env                             Fichier contenant les variables d'environnement précédentes
   -v \$(pwd):/srv/speed                              Bind mount du répertoire racine de l'application à dockérizer
-  -v /var/run/docker.sock:/var/run/docker.sock      Bind mount de la socket docker pour le lancement de commandes docker lors de la dockérization
+  -v ~/.kube/config/~/.kube/config                  Configuration d'accès au cluster kubernetes
 END
 }
 
@@ -37,14 +37,43 @@ printmainstep "Déploiement de l'application"
 printstep "Vérification des paramètres d'entrée"
 init_env
 
-TAG=${TAG:-"latest"}
-IMAGE=$ARTIFACTORY_DOCKER_REGISTRY/$PROJECT_NAMESPACE/$PROJECT_NAME:$TAG
+KUBECONFIG="/root/.kube/config"
+if [ ! -f $KUBECONFIG ]; then
+    printerror "Le configuration d'accès au cluster kubernetes doit être montée et associée au volume $KUBECONFIG du container (ex: -v $KUBECONFIG:$KUBECONFIG)"
+    exit 1
+fi  
+
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 BRANCH=${BRANCH:-"master"}
+RELEASE=$BRANCH-$PROJECT_NAME
+NAMESPACE=$BRANCH
+CONTEXT=$(kubectl config current-context)
 
-echo ""
-printinfo "DOCKERFILE : $DOCKERFILE"
-printinfo "IMAGE      : $IMAGE"
-printinfo "PROXY      : $PROXY"
-printinfo "NO_PROXY   : $NO_PROXY"
 printinfo "BRANCH     : $BRANCH"
+printinfo "RELEASE    : $RELEASE"
+printinfo "NAMESPACE  : $NAMESPACE"
+printinfo "CONTEXT    : $CONTEXT"
+
+printstep "Vérification de la configuration helm"
+helm version
+
+printstep "Vérification de la syntaxe du chart"
+cp -r /srv/speed /srv/$PROJECT_NAME
+cd /srv/$PROJECT_NAME
+helm lint
+
+printstep "Mise à jour des dépendances"
+
+printstep "Vérification de l'historique de déploiement"
+if [[ `helm ls --failed | grep $RELEASE` ]]; then
+    printinfo "Reprise sur erreur d'un déploiement précédent"
+    REVISION_COUNT=`helm history $RELEASE | tail -n +2 | wc -l`
+    if [[ $REVISION_COUNT == 1 ]]; then
+        printinfo "Suppression du premier déploiement en erreur"
+        helm delete --purge $RELEASE 
+    fi
+fi
+
+printstep "Installation du chart"
+helm upgrade --namespace $BRANCH --install $BRANCH-$PROJECT_NAME --wait .
+
