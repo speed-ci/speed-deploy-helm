@@ -1,0 +1,4 @@
+dockerize:
+  script: dockerize
+  tags:
+  - sln
