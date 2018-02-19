@@ -43,16 +43,14 @@ if [ ! -f $KUBECONFIG ]; then
     exit 1
 fi  
 
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-BRANCH=${BRANCH:-"master"}
-RELEASE=$BRANCH-$PROJECT_NAME
-NAMESPACE=$BRANCH
+RELEASE=$BRANCH_NAME-$PROJECT_NAME
+NAMESPACE=$BRANCH_NAME
 CONTEXT=$(kubectl config current-context)
 
-printinfo "BRANCH     : $BRANCH"
-printinfo "RELEASE    : $RELEASE"
-printinfo "NAMESPACE  : $NAMESPACE"
-printinfo "CONTEXT    : $CONTEXT"
+printinfo "BRANCH_NAME : $BRANCH_NAME"
+printinfo "RELEASE     : $RELEASE"
+printinfo "NAMESPACE   : $NAMESPACE"
+printinfo "CONTEXT     : $CONTEXT"
 
 printstep "Vérification de la configuration helm"
 helm version
@@ -75,5 +73,5 @@ if [[ `helm ls --failed | grep $RELEASE` ]]; then
 fi
 
 printstep "Installation du chart"
-helm upgrade --namespace $BRANCH --install $BRANCH-$PROJECT_NAME --wait .
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait .
 
