@@ -35,29 +35,42 @@ done
 
 printmainstep "Déploiement de l'application"
 printstep "Vérification des paramètres d'entrée"
-init_env
+init_artifactory_env
 
 KUBECONFIG="/root/.kube/config"
 if [ ! -f $KUBECONFIG ]; then
-    printerror "Le configuration d'accès au cluster kubernetes doit être montée et associée au volume $KUBECONFIG du container (ex: -v $KUBECONFIG:$KUBECONFIG)"
+    printerror "Le configuration d'accès au cluster kubernetes doit être montée et associée au volume $KUBECONFIG du container (ex: -v ~/.kube/config:$KUBECONFIG)"
     exit 1
 fi  
 
-RELEASE=$BRANCH_NAME-$PROJECT_NAME
-NAMESPACE=$BRANCH_NAME
-CONTEXT=$(kubectl config current-context)
+CHART_FILE_NAME="Chart.yaml"
+if [ ! -f $CHART_FILE_NAME ]; then
+    printerror "Le fichier de meta-données $CHART_FILE_NAME doit être présent dans le répertoire courrant"
+    exit 1
+fi
 
-printinfo "BRANCH_NAME : $BRANCH_NAME"
-printinfo "RELEASE     : $RELEASE"
-printinfo "NAMESPACE   : $NAMESPACE"
-printinfo "CONTEXT     : $CONTEXT"
+CHART_NAME=$(yq r Chart.yaml name)
+if [ $CHART_NAME == null ]; then
+    printerror "Le fichier de meta-données $CHART_FILE_NAME doit contenir le nom du chart (champ name)"
+    exit 1
+fi
+
+KUBERNETES_CONTEXT=$(kubectl config current-context)
+BRANCH_NAME=${BRANCH_NAME:-"master"}
+NAMESPACE=$BRANCH_NAME
+RELEASE=$NAMESPACE-$CHART_NAME
+
+printinfo "KUBERNETES_CONTEXT : $KUBERNETES_CONTEXT"
+printinfo "BRANCH_NAME        : $BRANCH_NAME"
+printinfo "NAMESPACE          : $NAMESPACE"
+printinfo "RELEASE            : $RELEASE"
 
 printstep "Vérification de la configuration helm"
 helm version
 
 printstep "Vérification de la syntaxe du chart"
-cp -r /srv/speed /srv/$PROJECT_NAME
-cd /srv/$PROJECT_NAME
+cp -r /srv/speed /srv/$CHART_NAME
+cd /srv/$CHART_NAME
 helm lint
 
 printstep "Mise à jour des dépendances"
@@ -75,3 +88,5 @@ fi
 printstep "Installation du chart"
 helm upgrade --namespace $NAMESPACE --install $RELEASE --wait .
 
+printstep "Affichage de l'historique d'installation du chart"
+helm history $RELEASE
