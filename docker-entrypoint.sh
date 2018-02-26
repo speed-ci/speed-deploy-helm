@@ -28,6 +28,26 @@ function colorize_error () {
 while read data; do echo "$data" | grep --color -ie "^.*\(ImagePullBackOff\|CrashLoopBackOff\|ErrImagePull\|Failed\|Error\).*$" -e ^; done;
 }
 
+function display_debug_info () {
+printinfo "Liste des pods"
+echo ""
+printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide"
+kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide | colorize_error
+echo ""
+for p in `kubectl get po -n $NAMESPACE -l release=$RELEASE -o name`;
+do
+  printinfo "Info de debug du pod $p"
+  echo ""
+  printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
+  kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d' | colorize_error
+  echo ""
+  printcomment "kubectl logs $p -n $NAMESPACE"
+  echo "Logs:"
+  kubectl logs $p -n $NAMESPACE || DEPLOY_STATUS="failed"
+  echo ""
+done
+}
+
 while [ -n "$1" ]; do
     case "$1" in
         -h | --help | help)
@@ -105,3 +125,6 @@ helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEO
 printstep "Affichage de l'historique de déploiement de la release $RELEASE"
 printcomment "helm history $RELEASE"
 helm history $RELEASE | colorize_error
+
+printstep "Affichage des infos de debug des pods ayant pour label release $RELEASE"
+display_debug_info
