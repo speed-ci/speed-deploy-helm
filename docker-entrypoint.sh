@@ -120,7 +120,7 @@ fi
 
 printstep "Installation du chart"
 printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --force"
-helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT | colorize_error
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT | colorize_error && DEPLOY_STATUS="success"
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE"
 printcomment "helm history $RELEASE"
@@ -128,3 +128,5 @@ helm history $RELEASE | colorize_error
 
 printstep "Affichage des infos de debug des pods ayant pour label release $RELEASE"
 display_debug_info
+
+if [[ $DEPLOY_STATUS != "success" ]]; then exit 1; fi
