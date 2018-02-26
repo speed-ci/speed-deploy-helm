@@ -79,9 +79,23 @@ if [ $CHART_NAME == null ]; then
     exit 1
 fi
 
+declare -A NAMESPACE_MAPPING_RULES
+NAMESPACE_MAPPING_RULES[master]=default
+if [[ $BRANCH_NAMESPACE_MAPPING  ]]; then
+    while read name value; do
+        NAMESPACE_MAPPING_RULES[$name]=$value
+    done < <(<<<"$BRANCH_NAMESPACE_MAPPING" awk -F= '{print $1,$2}' RS=',|\n')
+    for i in "${!NAMESPACE_MAPPING_RULES[@]}"
+    do
+        echo ":${i}=${NAMESPACE_MAPPING_RULES[$i]}:"
+    done
+fi
+
 KUBERNETES_CONTEXT=$(kubectl config current-context)
 BRANCH_NAME=${BRANCH_NAME:-"master"}
-NAMESPACE=${NAMESPACE:-$BRANCH_NAME}
+if [[ -z $NAMESPACE ]]; then
+   NAMESPACE=${NAMESPACE_MAPPING_RULES[$BRANCH_NAME]:-$BRANCH_NAME}
+fi
 RELEASE=$NAMESPACE-$CHART_NAME
 TIMEOUT=${TIMEOUT:-300}
 
