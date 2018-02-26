@@ -24,6 +24,10 @@ Options:
 END
 }
 
+function colorize_error () {
+while read data; do echo "$data" | grep --color -ie "^.*\(ImagePullBackOff\|CrashLoopBackOff\|ErrImagePull\|Failed\|Error\).*$" -e ^; done;
+}
+
 while [ -n "$1" ]; do
     case "$1" in
         -h | --help | help)
@@ -75,7 +79,7 @@ printstep "Vérification de la syntaxe du chart $CHART_NAME"
 cp -r /srv/speed /srv/$CHART_NAME
 cd /srv/$CHART_NAME
 printcomment "helm lint"
-helm lint
+helm lint | colorize_error
 
 printstep "Mise à jour des dépendances"
 
@@ -96,8 +100,8 @@ fi
 
 printstep "Installation du chart"
 printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --force"
-helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT | colorize_error
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE"
 printcomment "helm history $RELEASE"
-helm history $RELEASE
+helm history $RELEASE | colorize_error
