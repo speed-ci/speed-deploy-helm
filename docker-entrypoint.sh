@@ -57,18 +57,20 @@ fi
 
 KUBERNETES_CONTEXT=$(kubectl config current-context)
 BRANCH_NAME=${BRANCH_NAME:-"master"}
-NAMESPACE=$BRANCH_NAME
+NAMESPACE=${NAMESPACE:-$BRANCH_NAME}
 RELEASE=$NAMESPACE-$CHART_NAME
+TIMEOUT=${TIMEOUT:-300}
 
 printinfo "KUBERNETES_CONTEXT : $KUBERNETES_CONTEXT"
 printinfo "BRANCH_NAME        : $BRANCH_NAME"
 printinfo "NAMESPACE          : $NAMESPACE"
 printinfo "RELEASE            : $RELEASE"
+printinfo "TIMEOUT            : $TIMEOUT"
 
 printstep "Vérification de la configuration helm"
 helm version
 
-printstep "Vérification de la syntaxe du chart"
+printstep "Vérification de la syntaxe du chart $CHART_NAME"
 cp -r /srv/speed /srv/$CHART_NAME
 cd /srv/$CHART_NAME
 helm lint
@@ -81,17 +83,15 @@ if [[ `helm ls --failed | grep $RELEASE` ]]; then
     REVISION_COUNT=`helm history $RELEASE | tail -n +2 | wc -l`
     if [[ $REVISION_COUNT == 1 ]]; then
         printinfo "Suppression du premier déploiement en erreur"
-        printcomment "helm delete --purge $RELEASE"
         helm delete --purge $RELEASE 
     elif [[ `helm history $RELEASE | tail -n 1 | grep FAILED` ]]; then
         printinfo "Suppression du dernier déploiement en erreur"
-        printcomment "helm delete $RELEASE"
         helm delete $RELEASE 
     fi
 fi
 
 printstep "Installation du chart"
-helm upgrade --namespace $NAMESPACE --install $RELEASE --wait .
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT
 
-printstep "Affichage de l'historique d'installation du chart"
+printstep "Affichage de l'historique de déploiement de la release $RELEASE"
 helm history $RELEASE
