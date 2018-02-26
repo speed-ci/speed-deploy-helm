@@ -68,11 +68,13 @@ printinfo "RELEASE            : $RELEASE"
 printinfo "TIMEOUT            : $TIMEOUT"
 
 printstep "Vérification de la configuration helm"
+printcomment "helm version"
 helm version
 
 printstep "Vérification de la syntaxe du chart $CHART_NAME"
 cp -r /srv/speed /srv/$CHART_NAME
 cd /srv/$CHART_NAME
+printcomment "helm lint"
 helm lint
 
 printstep "Mise à jour des dépendances"
@@ -83,15 +85,19 @@ if [[ `helm ls --failed | grep $RELEASE` ]]; then
     REVISION_COUNT=`helm history $RELEASE | tail -n +2 | wc -l`
     if [[ $REVISION_COUNT == 1 ]]; then
         printinfo "Suppression du premier déploiement en erreur"
+        printcomment "helm delete --purge $RELEASE"
         helm delete --purge $RELEASE 
     elif [[ `helm history $RELEASE | tail -n 1 | grep FAILED` ]]; then
         printinfo "Suppression du dernier déploiement en erreur"
+        printcomment "helm delete $RELEASE"
         helm delete $RELEASE 
     fi
 fi
 
 printstep "Installation du chart"
+printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --force"
 helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE"
+printcomment "helm history $RELEASE"
 helm history $RELEASE
