@@ -79,31 +79,41 @@ if [ $CHART_NAME == null ]; then
     exit 1
 fi
 
+declare -A KUBE_CONTEXT_MAPPING_RULES
+if [[ $BRANCH_KUBE_CONTEXT_MAPPING  ]]; then
+    while read name value; do
+        KUBE_CONTEXT_MAPPING_RULES[$name]=$value
+    done < <(<<<"$BRANCH_KUBE_CONTEXT_MAPPING" awk -F= '{print $1,$2}' RS=',|\n')
+fi
+
 declare -A NAMESPACE_MAPPING_RULES
 NAMESPACE_MAPPING_RULES[master]=default
 if [[ $BRANCH_NAMESPACE_MAPPING  ]]; then
     while read name value; do
         NAMESPACE_MAPPING_RULES[$name]=$value
     done < <(<<<"$BRANCH_NAMESPACE_MAPPING" awk -F= '{print $1,$2}' RS=',|\n')
-    for i in "${!NAMESPACE_MAPPING_RULES[@]}"
-    do
-        echo ":${i}=${NAMESPACE_MAPPING_RULES[$i]}:"
-    done
 fi
 
-KUBERNETES_CONTEXT=$(kubectl config current-context)
 BRANCH_NAME=${BRANCH_NAME:-"master"}
+if [[ -z $KUBE_CONTEXT ]]; then
+   DEFAULT_KUBE_CONTEXT=$(kubectl config current-context)
+   KUBE_CONTEXT=${KUBE_CONTEXT_MAPPING_RULES[$BRANCH_NAME]:-$DEFAULT_KUBE_CONTEXT}
+fi
 if [[ -z $NAMESPACE ]]; then
    NAMESPACE=${NAMESPACE_MAPPING_RULES[$BRANCH_NAME]:-$BRANCH_NAME}
 fi
 RELEASE=$NAMESPACE-$CHART_NAME
 TIMEOUT=${TIMEOUT:-300}
 
-printinfo "KUBERNETES_CONTEXT : $KUBERNETES_CONTEXT"
-printinfo "BRANCH_NAME        : $BRANCH_NAME"
-printinfo "NAMESPACE          : $NAMESPACE"
-printinfo "RELEASE            : $RELEASE"
-printinfo "TIMEOUT            : $TIMEOUT"
+printinfo "BRANCH_NAME    : $BRANCH_NAME"
+printinfo "KUBE_CONTEXT   : $KUBE_CONTEXT"
+printinfo "NAMESPACE      : $NAMESPACE"
+printinfo "RELEASE        : $RELEASE"
+printinfo "TIMEOUT        : $TIMEOUT"
+
+printstep "Définir le contexte Kubernetes par défaut"
+printcomment "kubectl config use-context $KUBE_CONTEXT"
+kubectl config use-context $KUBE_CONTEXT
 
 printstep "Vérification de la configuration helm"
 printcomment "helm version"
@@ -133,7 +143,7 @@ if [[ `helm ls --failed | grep $RELEASE` ]]; then
 fi
 
 printstep "Installation du chart"
-printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --force"
+printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT"
 helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT | colorize_error && DEPLOY_STATUS="success"
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE"
