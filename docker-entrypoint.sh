@@ -66,8 +66,11 @@ while [ -n "$1" ]; do
     case "$1" in
         -h | --help | help)
             help
-            exit
+            exit 0
             ;;
+        *)
+            echo "Usage:  {h|--help|help} Afficher l'aide pour la configuration de lancement du container"
+            exit 1
     esac 
 done
 
