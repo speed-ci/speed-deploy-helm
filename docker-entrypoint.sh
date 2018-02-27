@@ -7,12 +7,20 @@ function help () {
 # Using a here doc with standard out.
 cat <<-END
 
-Usage: docker run [OPTIONS] docker-artifactory.sln.nc/speed/speed-dockerize
+Usage: docker run [OPTIONS] docker-artifactory.sln.nc/speed/speed-deploy-helm
 
-Dockerizer l'application du répertoire courant
-Le fichier Dockerfile doit être présent à la racine du projet
-L'action de dockérizer consiste à prendre des fichiers plats en entrée et générer une image docker en sortie.
-Le nom de l'image est déduit de l'url Gitlab remote origin, il y a donc correspondance entre les noms de groupes et de projets entre Gitlab et Artifactory
+Déployer l'application du répertoire courant sur un cluster kubernetes avec helm
+L'action de déployer consiste à installer le chart helm du répertoire courant sur un cluster kubernetes.
+Les opérations suivantes sont effectuées:
+- Vérification et déduction de la configuration d'entrée
+- Définition du contexte kubernetes cible
+- Vérification de la configuration helm
+- Vérification de la la syntaxe du chart
+- Mise à jour des dépendances
+- Suppression de la révision précédente si en échec
+- Installation du chart
+- Affichage de l'historique de déploiement
+- Affichage des infos de debug
 
 Options:
   -e ARTIFACTORY_URL=string                         URL d'Artifactory (ex: https://artifactory.sln.nc)
