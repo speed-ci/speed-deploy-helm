@@ -23,18 +23,18 @@ Les opérations suivantes sont effectuées:
 - Affichage des infos de debug
 
 Options:
-  -e ARTIFACTORY_URL=string                         URL d'Artifactory (ex: https://artifactory.sln.nc)
-  -e ARTIFACTORY_USER=string                        Username d'accès à Artifactory (ex: prenom.nom)
-  -e ARTIFACTORY_PASSWORD=string                    Mot de passe d'accès à Artifactory
-  -e BRANCH_NAME=string                             Nom de la branch git - par défaut cette valeur est automatiquement découverte à partir des métadonnées du projet git
-  -e KUBE_CONTEXT=string                            Nom du contexte kubernetes à utiliser - par défaut cette valeur est le contexte courant de la configuration .kube/config fournie
-  -e NAMESPACE=string                               Nom du namespace kubernetes dans lequel déployer la release - par défaut cette valeur est déduite de la branche git et des règles de mapping
-  -e KUBE_CONTEXT_MAPPING_RULES=<rules>             Règles de mapping spécifiques entre la branche git et le contexte kubernetes (ex: preprod=kubernetes-preprod@cluster-preprod,prod=kubernetes-prod@cluster-prod)
-  -e NAMESPACE_MAPPING_RULES=<rules>                Règles de mapping spécifiques entre la branche git et le namespace kubernetes (ex: master=dev,prod=ns-prod) 
-  -e TIMEOUT                                        Durée d'attente du déploiement de la release avant interruption en erreur
-  --env-file ~/speed.env                            Fichier contenant les variables d'environnement précédentes
-  -v \$(pwd):/srv/speed                              Bind mount du répertoire racine de l'application à dockérizer
-  -v ~/.kube/config:~/.kube/config                  Bind mount de la configuration d'accès au cluster kubernetes
+  -e ARTIFACTORY_URL=string              URL d'Artifactory (ex: https://artifactory.sln.nc)
+  -e ARTIFACTORY_USER=string             Username d'accès à Artifactory (ex: prenom.nom)
+  -e ARTIFACTORY_PASSWORD=string         Mot de passe d'accès à Artifactory
+  -e BRANCH_NAME=string                  Nom de la branch git - par défaut cette valeur est automatiquement découverte à partir des métadonnées du projet git
+  -e KUBE_CONTEXT=string                 Nom du contexte kubernetes à utiliser - par défaut cette valeur est le contexte courant de la configuration .kube/config fournie
+  -e NAMESPACE=string                    Nom du namespace kubernetes dans lequel déployer la release - par défaut cette valeur est déduite de la branche git et des règles de mapping
+  -e KUBE_CONTEXT_MAPPING_RULES=<rules>  Règles de mapping spécifiques entre la branche git et le contexte kubernetes (ex: preprod=kubernetes-preprod@cluster-preprod,prod=kubernetes-prod@cluster-prod)
+  -e NAMESPACE_MAPPING_RULES=<rules>     Règles de mapping spécifiques entre la branche git et le namespace kubernetes (ex: master=dev,prod=ns-prod) 
+  -e TIMEOUT                             Durée d'attente du déploiement de la release avant interruption en erreur
+  --env-file ~/speed.env                 Fichier contenant les variables d'environnement précédentes
+  -v \$(pwd):/srv/speed                   Bind mount du répertoire racine de l'application à dockérizer
+  -v ~/.kube/config:~/.kube/config       Bind mount de la configuration d'accès au cluster kubernetes
 END
 }
 
