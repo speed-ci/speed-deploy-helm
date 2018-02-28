@@ -31,7 +31,7 @@ Options:
   -e NAMESPACE=string                    Nom du namespace kubernetes dans lequel déployer la release - par défaut cette valeur est déduite de la branche git et des règles de mapping
   -e KUBE_CONTEXT_MAPPING_RULES=<rules>  Règles de mapping spécifiques entre la branche git et le contexte kubernetes (ex: preprod=kubernetes-preprod@cluster-preprod,prod=kubernetes-prod@cluster-prod)
   -e NAMESPACE_MAPPING_RULES=<rules>     Règles de mapping spécifiques entre la branche git et le namespace kubernetes (ex: master=dev,prod=ns-prod) 
-  -e TIMEOUT                             Durée d'attente du déploiement de la release avant interruption en erreur
+  -e TIMEOUT=integer                     Durée d'attente en secondes du déploiement de la release avant interruption en erreur
   --env-file ~/speed.env                 Fichier contenant les variables d'environnement précédentes
   -v \$(pwd):/srv/speed                   Bind mount du répertoire racine de l'application à dockérizer
   -v ~/.kube/config:~/.kube/config       Bind mount de la configuration d'accès au cluster kubernetes
