@@ -31,6 +31,7 @@ Options:
   -e NAMESPACE=string                     Nom du namespace kubernetes dans lequel déployer la release - par défaut cette valeur est déduite de la branche git et des règles de mapping
   -e BRANCH_KUBE_CONTEXT_MAPPING=<rules>  Règles de mapping spécifiques entre les branches git et les contextes kubernetes (ex: preprod=kubernetes-preprod@cluster-preprod,prod=kubernetes-prod@cluster-prod)
   -e BRANCH_NAMESPACE_MAPPING=<rules>     Règles de mapping spécifiques entre les branches git et les namespaces kubernetes (ex: master=dev,prod=ns-prod) 
+  -e KUBECONFIG_OVERRIDE=string           Configuration d'accès au cluster kubernetes (les guillements doivent être échappés) - surcharge la configuration passée par fichier
   -e TIMEOUT=integer                      Durée d'attente en secondes du déploiement de la release avant interruption en erreur
   --env-file ~/speed.env                  Fichier contenant les variables d'environnement précédentes
   -v \$(pwd):/srv/speed                    Bind mount du répertoire racine de l'application à dockérizer
@@ -78,9 +79,19 @@ printmainstep "Déploiement de l'application"
 printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 
-KUBECONFIG="/root/.kube/config"
-if [ ! -f $KUBECONFIG ]; then
-    printerror "Le configuration d'accès au cluster kubernetes doit être montée et associée au volume $KUBECONFIG du container (ex: -v ~/.kube/config:$KUBECONFIG)"
+KUBECONFIG_DEFAULT_PATH="/root/.kube/config"
+KUBECONFIG_OVERRIDE_PATH="/root/.kube/config.override"
+KUBECONFIG=$KUBECONFIG_OVERRIDE_PATH:$KUBECONFIG_DEFAULT_PATH
+export KUBECONFIG=$KUBECONFIG
+if [[ $KUBECONFIG_OVERRIDE ]]; then
+    mkdir -p /root/.kube
+    echo $KUBECONFIG_OVERRIDE | yq r - > $KUBECONFIG_OVERRIDE_PATH
+fi
+
+if [[ ! -f $KUBECONFIG_DEFAULT_PATH && ! -f $KUBECONFIG_OVERRIDE_PATH ]]; then
+    printerror "Le configuration d'accès au cluster kubernetes doit être renseignée"
+    printerror "- soit en montant et associant le volume $KUBECONFIG_DEFAULT_PATH au container (ex: -v ~/.kube/config:$KUBECONFIG_DEFAULT_PATH)"
+    printerror "- soit en renseignant la variable d'environnement KUBECONFIG_OVERRIDE (les guillements doivent être échappés)"
     exit 1
 fi  
 
