@@ -154,6 +154,8 @@ printcomment "helm lint"
 helm lint | colorize_error
 
 printstep "Mise à jour des dépendances"
+printcomment "helm dependency update"
+helm dependency update
 
 printstep "Vérification de l'historique de déploiement"
 if [[ `helm ls --failed | grep $RELEASE` ]]; then
