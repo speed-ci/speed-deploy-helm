@@ -147,6 +147,14 @@ printstep "Vérification de la configuration helm"
 printcomment "helm version"
 helm version
 
+printstep "Configuration de l'accès au chart repository"
+printcomment "helm init --client-only --skip-refresh"
+helm init --client-only --skip-refresh
+printcomment "helm repo remove local"
+helm repo remove local
+printcomment "helm repo add stable \$ARTIFACTORY_URL/artifactory/helm --username \$ARTIFACTORY_USER --password \$ARTIFACTORY_PASSWORD"
+helm repo add stable "$ARTIFACTORY_URL/artifactory/helm" --username "$ARTIFACTORY_USER" --password "$ARTIFACTORY_PASSWORD"
+
 printstep "Vérification de la syntaxe du chart $CHART_NAME"
 cp -r /srv/speed /srv/$CHART_NAME
 cd /srv/$CHART_NAME
