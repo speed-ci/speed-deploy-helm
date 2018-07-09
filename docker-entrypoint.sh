@@ -122,7 +122,13 @@ if [[ $BRANCH_NAMESPACE_MAPPING  ]]; then
     done < <(<<<"$BRANCH_NAMESPACE_MAPPING" awk -F= '{print $1,$2}' RS=',|\n')
 fi
 
-BRANCH_NAME=${BRANCH_NAME:-"master"}
+if [[ -z $BRANCH_NAME ]]; then
+  if [[ ! $(git status | grep "Initial commit")  ]]; then
+    BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+  fi
+  BRANCH_NAME=${BRANCH_NAME:-"master"}
+fi
+
 if [[ -z $KUBE_CONTEXT ]]; then
    DEFAULT_KUBE_CONTEXT=$(kubectl config current-context)
    KUBE_CONTEXT=${KUBE_CONTEXT_MAPPING_RULES[$BRANCH_NAME]:-$DEFAULT_KUBE_CONTEXT}
@@ -130,22 +136,95 @@ fi
 if [[ -z $NAMESPACE ]]; then
    NAMESPACE=${NAMESPACE_MAPPING_RULES[$BRANCH_NAME]:-$BRANCH_NAME}
 fi
-RELEASE=$NAMESPACE-$CHART_NAME
+RELEASE=$CHART_NAME
 TIMEOUT=${TIMEOUT:-300}
 
-printinfo "BRANCH_NAME    : $BRANCH_NAME"
-printinfo "KUBE_CONTEXT   : $KUBE_CONTEXT"
-printinfo "NAMESPACE      : $NAMESPACE"
-printinfo "RELEASE        : $RELEASE"
-printinfo "TIMEOUT        : $TIMEOUT"
+printinfo "BRANCH_NAME                 : $BRANCH_NAME"
+printinfo "KUBE_CONTEXT                : $KUBE_CONTEXT"
+printinfo "NAMESPACE                   : $NAMESPACE"
+printinfo "RELEASE                     : $RELEASE"
+printinfo "TIMEOUT                     : $TIMEOUT"
+printinfo "BRANCH_KUBE_CONTEXT_MAPPING : $BRANCH_KUBE_CONTEXT_MAPPING"
+printinfo "BRANCH_NAMESPACE_MAPPING    : $BRANCH_NAMESPACE_MAPPING"
 
-printstep "Définir le contexte Kubernetes par défaut"
+printstep "Définition du contexte Kubernetes par défaut"
 printcomment "kubectl config use-context $KUBE_CONTEXT"
 kubectl config use-context $KUBE_CONTEXT
 
+printstep "Création du namespace $NAMESPACE"
+if ! kubectl get ns --ignore-not-found | grep -q $NAMESPACE ; then
+    kubectl create ns $NAMESPACE
+fi
+
+printstep "Configuration de l'accès à la registry Docker privée pour le namespace $NAMESPACE"
+if ! kubectl get secrets -n $NAMESPACE --ignore-not-found | grep -q regsecret ; then
+    kubectl create secret docker-registry regsecret --namespace=$NAMESPACE \
+                                                    --docker-server=$ARTIFACTORY_DOCKER_REGISTRY \
+                                                    --docker-username=$ARTIFACTORY_USER \
+                                                    --docker-password=$ARTIFACTORY_PASSWORD \
+                                                    --docker-email=speed@eramet-sln.nc \                        
+fi
+if ! kubectl get secrets regsecret -n $NAMESPACE --output="jsonpath={.data.\.dockerconfigjson}" | base64 -d | grep -q $ARTIFACTORY_PASSWORD ; then
+    ARTIFACTORY_FQDN=${ARTIFACTORY_URL##*/}
+    ARTIFACTORY_DOCKER_REGISTRY=${ARTIFACTORY_DOCKER_REGISTRY:-"docker-$ARTIFACTORY_FQDN"} 
+    kubectl delete secret regsecret --ignore-not-found=true --namespace=$NAMESPACE &&
+    kubectl create secret docker-registry regsecret --namespace=$NAMESPACE \
+                                                    --docker-server=$ARTIFACTORY_DOCKER_REGISTRY \
+                                                    --docker-username=$ARTIFACTORY_USER \
+                                                    --docker-password=$ARTIFACTORY_PASSWORD \
+                                                    --docker-email=speed@eramet-sln.nc \                        
+fi
+if ! kubectl get sa -n $NAMESPACE --ignore-not-found | grep -q default ; then
+    kubectl create sa default --namespace ${NAMESPACE}
+fi
+if ! kubectl get sa -n $NAMESPACE default -o json | grep -q imagePullSecrets ; then
+    kubectl patch sa -n $NAMESPACE default -p '{"imagePullSecrets": [{"name": "regsecret"}]}'
+fi
+
+printstep "Installation de Tiller dans le namespace $NAMESPACE"
+if ! kubectl get sa -n $NAMESPACE --ignore-not-found | grep -q tiller ; then
+    kubectl create sa tiller --namespace ${NAMESPACE}
+fi
+if ! kubectl get roles -n $NAMESPACE --ignore-not-found | grep -q tiller-manager ; then
+    cat <<EOF | kubectl create -f -
+     kind: Role
+     apiVersion: rbac.authorization.k8s.io/v1beta1
+     metadata:
+       name: tiller-manager
+       namespace: $NAMESPACE
+     rules:
+     - apiGroups: ["", "extensions", "apps"]
+       resources: ["*"]
+       verbs: ["*"]
+EOF
+fi
+if ! kubectl get rolebindings -n $NAMESPACE --ignore-not-found | grep -q tiller-binding ; then
+    cat <<EOF | kubectl create -f -
+     kind: RoleBinding
+     apiVersion: rbac.authorization.k8s.io/v1beta1
+     metadata:
+       name: tiller-binding
+       namespace: $NAMESPACE
+     subjects:
+     - kind: ServiceAccount
+       name: tiller
+       namespace: $NAMESPACE
+     roleRef:
+       kind: Role
+       name: tiller-manager
+       apiGroup: rbac.authorization.k8s.io
+EOF
+fi
+
+if ! kubectl get deploy -n dev --ignore-not-found | grep -q tiller-deploy ||
+   ! helm version --tiller-namespace $NAMESPACE --template "{{ .Server.SemVer }}" | grep -q $HELM_LATEST_VERSION ; then
+    printcomment "helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --wait"
+    helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --wait
+fi
+
 printstep "Vérification de la configuration helm"
-printcomment "helm version"
-helm version
+printcomment "helm version --tiller-namespace $NAMESPACE"
+helm version --tiller-namespace $NAMESPACE
 
 printstep "Configuration de l'accès au chart repository"
 printcomment "helm init --client-only --skip-refresh"
@@ -166,27 +245,27 @@ printcomment "helm dependency update"
 helm dependency update
 
 printstep "Vérification de l'historique de déploiement"
-if [[ `helm ls --failed | grep $RELEASE` ]]; then
+if [[ `helm ls --failed --tiller-namespace $NAMESPACE | grep $RELEASE` ]]; then
     printinfo "Reprise sur erreur d'un déploiement précédent"
-    REVISION_COUNT=`helm history $RELEASE | tail -n +2 | wc -l`
+    REVISION_COUNT=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n +2 | wc -l`
     if [[ $REVISION_COUNT == 1 ]]; then
         printinfo "Suppression du premier déploiement en erreur"
-        printcomment "helm delete --purge $RELEASE"
-        helm delete --purge $RELEASE 
-    elif [[ `helm history $RELEASE | tail -n 1 | grep FAILED` ]]; then
+        printcomment "helm delete --purge $RELEASE --tiller-namespace $NAMESPACE"
+        helm delete --purge $RELEASE --tiller-namespace $NAMESPACE
+    elif [[ `helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | grep FAILED` ]]; then
         printinfo "Suppression du dernier déploiement en erreur"
-        printcomment "helm delete $RELEASE"
-        helm delete $RELEASE 
+        printcomment "helm delete $RELEASE --tiller-namespace $NAMESPACE"
+        helm delete $RELEASE --tiller-namespace $NAMESPACE
     fi
 fi
 
 printstep "Installation du chart"
-printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT"
-helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT | colorize_error && DEPLOY_STATUS="success"
+printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE"
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE | colorize_error && DEPLOY_STATUS="success"
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE"
-printcomment "helm history $RELEASE"
-helm history $RELEASE | colorize_error
+printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE"
+helm history $RELEASE --tiller-namespace $NAMESPACE | colorize_error
 
 printstep "Affichage des infos de debug des pods ayant pour label release $RELEASE"
 display_debug_info
