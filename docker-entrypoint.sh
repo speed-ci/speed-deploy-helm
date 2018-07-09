@@ -75,7 +75,7 @@ while [ -n "$1" ]; do
     esac 
 done
 
-printmainstep "Déploiement de l'application"
+printmainstep "Déploiement de l'application avec Kubernetes Helm"
 printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 
