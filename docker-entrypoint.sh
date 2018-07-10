@@ -271,7 +271,7 @@ printstep "Affichage des infos de debug des pods ayant pour label release $RELEA
 display_debug_info
 
 HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | cut -f3`
-if [[ $HELM_STATUS == "FAILED" ]]; then DEPLOY_STATUS="failed"; fi
+if [[ $HELM_STATUS == "FAILED"* ]]; then DEPLOY_STATUS="failed"; fi
 
 if [[ $DEPLOY_STATUS != "success" ]]; then
     printerror "Erreur lors du déploiement Helm"
