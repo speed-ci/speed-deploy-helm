@@ -79,21 +79,27 @@ printmainstep "Déploiement de l'application avec Kubernetes Helm"
 printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 
+KUBECONFIG_FOLDER="/root/.kube"
 KUBECONFIG_DEFAULT_PATH="/root/.kube/config"
 KUBECONFIG_OVERRIDE_PATH="/root/.kube/config.override"
-KUBECONFIG=$KUBECONFIG_OVERRIDE_PATH:$KUBECONFIG_DEFAULT_PATH
-export KUBECONFIG=$KUBECONFIG
 if [[ $KUBECONFIG_OVERRIDE ]]; then
     mkdir -p /root/.kube
     echo $KUBECONFIG_OVERRIDE | yq r - > $KUBECONFIG_OVERRIDE_PATH
 fi
 
-if [[ ! -f $KUBECONFIG_DEFAULT_PATH && ! -f $KUBECONFIG_OVERRIDE_PATH ]]; then
-    printerror "Le configuration d'accès au cluster kubernetes doit être renseignée"
-    printerror "- soit en montant et associant le volume $KUBECONFIG_DEFAULT_PATH au container (ex: -v ~/.kube/config:$KUBECONFIG_DEFAULT_PATH)"
+KUBECONFIG=""
+for i in $KUBECONFIG_FOLDER/*config*; do
+    KUBECONFIG="$KUBECONFIG:$i"
+done
+
+KUBECONTEXT_LIST=`kubectl config get-contexts -o name`
+if [[ -z $KUBECONTEXT_LIST ]]; then
+    printerror "Aucun context kubernetes trouvé: la configuration d'accès au cluster kubernetes doit être renseignée (on recherche des fichiers contenant le mot clef config)"
+    printerror "- soit en montant et associant le volume $KUBECONFIG_FOLDER au container (ex: -v ~/.kube:$KUBECONFIG_FOLDER)"
     printerror "- soit en renseignant la variable d'environnement KUBECONFIG_OVERRIDE (les guillements doivent être échappés)"
     exit 1
 fi  
+export KUBECONFIG=$KUBECONFIG
 
 CHART_FILE_NAME="Chart.yaml"
 if [ ! -f $CHART_FILE_NAME ]; then
