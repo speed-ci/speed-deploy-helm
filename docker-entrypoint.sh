@@ -270,4 +270,10 @@ helm history $RELEASE --tiller-namespace $NAMESPACE | colorize_error
 printstep "Affichage des infos de debug des pods ayant pour label release $RELEASE"
 display_debug_info
 
-if [[ $DEPLOY_STATUS != "success" ]]; then exit 1; fi
+HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1`
+if [[ $HELM_STATUS != "FAILED" ]]; then DEPLOY_STATUS="failed"; fi
+
+if [[ $DEPLOY_STATUS != "success" ]]; then
+    printerror "Erreur lors du déploiement Helm"
+    exit 1;
+fi
