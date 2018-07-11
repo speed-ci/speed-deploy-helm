@@ -96,6 +96,8 @@ for i in $KUBECONFIG_FOLDER/*config*; do
 done
 
 echo "KUBECONFIG : $KUBECONFIG"
+export KUBECONFIG=$KUBECONFIG
+kubectl config get-contexts
 KUBECONTEXT_LIST=`kubectl config get-contexts -o name`
 if [[ -z $KUBECONTEXT_LIST ]]; then
     printerror "Aucun context kubernetes trouvé: la configuration d'accès au cluster kubernetes doit être renseignée (on recherche des fichiers contenant le mot clef config)"
@@ -103,8 +105,6 @@ if [[ -z $KUBECONTEXT_LIST ]]; then
     printerror "- soit en renseignant la variable d'environnement KUBECONFIG_OVERRIDE (les guillements doivent être échappés)"
     exit 1
 fi  
-export KUBECONFIG=$KUBECONFIG
-kubectl config get-contexts
 
 CHART_FILE_NAME="Chart.yaml"
 if [ ! -f $CHART_FILE_NAME ]; then
