@@ -79,11 +79,14 @@ printmainstep "Déploiement de l'application avec Kubernetes Helm"
 printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 
+KUBECONFIG_ORIGIN_FOLDER="/srv/kubeconfig"
 KUBECONFIG_FOLDER="/root/.kube"
 KUBECONFIG_DEFAULT_PATH="$KUBECONFIG_FOLDER/config"
 KUBECONFIG_OVERRIDE_PATH="$KUBECONFIG_FOLDER/config.override"
+mkdir -p $KUBECONFIG_FOLDER
+cp $KUBECONFIG_ORIGIN_FOLDER/* $KUBECONFIG_FOLDER
+
 if [[ $KUBECONFIG_OVERRIDE ]]; then
-    mkdir -p $KUBECONFIG_FOLDER
     echo $KUBECONFIG_OVERRIDE | yq r - > $KUBECONFIG_OVERRIDE_PATH
 fi
 
