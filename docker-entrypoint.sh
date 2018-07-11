@@ -80,18 +80,22 @@ printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 
 KUBECONFIG_FOLDER="/root/.kube"
-KUBECONFIG_DEFAULT_PATH="/root/.kube/config"
-KUBECONFIG_OVERRIDE_PATH="/root/.kube/config.override"
+KUBECONFIG_DEFAULT_PATH="$KUBECONFIG_FOLDER/config"
+KUBECONFIG_OVERRIDE_PATH="$KUBECONFIG_FOLDER/config.override"
 if [[ $KUBECONFIG_OVERRIDE ]]; then
-    mkdir -p /root/.kube
+    mkdir -p $KUBECONFIG_FOLDER
     echo $KUBECONFIG_OVERRIDE | yq r - > $KUBECONFIG_OVERRIDE_PATH
+    echo $KUBECONFIG_OVERRIDE | yq r -
+    cat $KUBECONFIG_OVERRIDE_PATH
 fi
 
 KUBECONFIG=""
 for i in $KUBECONFIG_FOLDER/*config*; do
+    echo "- $i"
     KUBECONFIG="$KUBECONFIG:$i"
 done
 
+echo "KUBECONFIG : $KUBECONFIG"
 KUBECONTEXT_LIST=`kubectl config get-contexts -o name`
 if [[ -z $KUBECONTEXT_LIST ]]; then
     printerror "Aucun context kubernetes trouvé: la configuration d'accès au cluster kubernetes doit être renseignée (on recherche des fichiers contenant le mot clef config)"
@@ -100,6 +104,7 @@ if [[ -z $KUBECONTEXT_LIST ]]; then
     exit 1
 fi  
 export KUBECONFIG=$KUBECONFIG
+kubectl config get-contexts
 
 CHART_FILE_NAME="Chart.yaml"
 if [ ! -f $CHART_FILE_NAME ]; then
