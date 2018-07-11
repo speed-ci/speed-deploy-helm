@@ -96,6 +96,7 @@ for i in $KUBECONFIG_FOLDER/*config*; do
 done
 
 export KUBECONFIG=$KUBECONFIG
+printinfo "KUBECONFIG                   : $KUBECONFIG"
 KUBECONTEXT_LIST=`kubectl config get-contexts -o name`
 if [[ -z $KUBECONTEXT_LIST ]]; then
     printerror "Aucun context kubernetes trouvé: la configuration d'accès au cluster kubernetes doit être renseignée (on recherche des fichiers contenant le mot clef config)"
