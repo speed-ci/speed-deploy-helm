@@ -58,7 +58,7 @@ do
   echo ""
   printcomment "kubectl logs $p -n $NAMESPACE"
   echo "Logs:"
-  kubectl logs $p -n $NAMESPACE || DEPLOY_STATUS="failed"
+  kubectl logs $p -n $NAMESPACE
   echo ""
 done
 }
