@@ -198,33 +198,19 @@ fi
 if ! kubectl get sa -n $NAMESPACE tiller -o json | grep -q imagePullSecrets ; then
     kubectl patch sa -n $NAMESPACE tiller -p '{"imagePullSecrets": [{"name": "regsecret"}]}'
 fi
-if ! kubectl get roles -n $NAMESPACE --ignore-not-found | grep -q tiller-manager ; then
+if ! kubectl get clusterrolebindings --ignore-not-found | grep -q tiller-cluster-binding ; then
     cat <<EOF | kubectl create -f -
-     kind: Role
+     kind: ClusterRoleBinding
      apiVersion: rbac.authorization.k8s.io/v1beta1
      metadata:
-       name: tiller-manager
-       namespace: $NAMESPACE
-     rules:
-     - apiGroups: ["", "extensions", "apps"]
-       resources: ["*"]
-       verbs: ["*"]
-EOF
-fi
-if ! kubectl get rolebindings -n $NAMESPACE --ignore-not-found | grep -q tiller-binding ; then
-    cat <<EOF | kubectl create -f -
-     kind: RoleBinding
-     apiVersion: rbac.authorization.k8s.io/v1beta1
-     metadata:
-       name: tiller-binding
-       namespace: $NAMESPACE
+       name: tiller-cluster-binding
      subjects:
      - kind: ServiceAccount
        name: tiller
        namespace: $NAMESPACE
      roleRef:
-       kind: Role
-       name: tiller-manager
+       kind: ClusterRole
+       name: cluster-admin
        apiGroup: rbac.authorization.k8s.io
 EOF
 fi
