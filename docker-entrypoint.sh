@@ -195,6 +195,9 @@ printstep "Installation de Tiller dans le namespace $NAMESPACE"
 if ! kubectl get sa -n $NAMESPACE --ignore-not-found | grep -q tiller ; then
     kubectl create sa tiller --namespace ${NAMESPACE}
 fi
+if ! kubectl get sa -n $NAMESPACE tiller -o json | grep -q imagePullSecrets ; then
+    kubectl patch sa -n $NAMESPACE tiller -p '{"imagePullSecrets": [{"name": "regsecret"}]}'
+fi
 if ! kubectl get roles -n $NAMESPACE --ignore-not-found | grep -q tiller-manager ; then
     cat <<EOF | kubectl create -f -
      kind: Role
