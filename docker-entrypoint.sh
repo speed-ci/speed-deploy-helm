@@ -41,20 +41,21 @@ END
 
 function colorize_error () {
 while read data; do echo "$data" | grep --color -ie "^.*\(ImagePullBackOff\|CrashLoopBackOff\|ErrImagePull\|Failed\|Error\).*$" -e ^; done;
+# sed version : while read data; do echo "$data" | sed 's/\(.*ImagePullBackOff.*\|.*CrashLoopBackOff.*\|.*ErrImagePull.*\|.*Failed.*\|.*Error.*\)/'"$COLOR"'\1'"$OFF"'/' ; done;
 }
 
 function display_debug_info () {
 printinfo "Liste des pods"
 echo ""
 printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide"
-kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide | colorize_error
+kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide
 echo ""
 for p in `kubectl get po -n $NAMESPACE -l release=$RELEASE -o name`;
 do
   printinfo "Info de debug du pod $p"
   echo ""
   printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
-  kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d' | colorize_error
+  kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
   echo ""
   printcomment "kubectl logs $p -n $NAMESPACE"
   echo "Logs:"
@@ -239,7 +240,7 @@ printstep "Vérification de la syntaxe du chart $CHART_NAME"
 cp -r /srv/speed /srv/$CHART_NAME
 cd /srv/$CHART_NAME
 printcomment "helm lint"
-helm lint | colorize_error
+helm lint
 
 printstep "Mise à jour des dépendances"
 printcomment "helm dependency update"
@@ -262,11 +263,11 @@ fi
 
 printstep "Installation du chart"
 printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE"
-helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE | colorize_error && DEPLOY_STATUS="success"
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE && DEPLOY_STATUS="success"
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE"
 printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE"
-helm history $RELEASE --tiller-namespace $NAMESPACE | colorize_error
+helm history $RELEASE --tiller-namespace $NAMESPACE
 
 printstep "Affichage des infos de debug des pods ayant pour label release $RELEASE"
 display_debug_info
