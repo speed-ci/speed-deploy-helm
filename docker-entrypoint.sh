@@ -166,7 +166,7 @@ if ! kubectl get ns --ignore-not-found | grep -q $NAMESPACE ; then
     kubectl create ns $NAMESPACE
 fi
 
-printstep "Configuration de l'accès à la registry Docker privée pour le namespace $NAMESPACE"
+printstep "Configuration de l'accès à la registry Docker privée $ARTIFACTORY_DOCKER_REGISTRY pour le namespace $NAMESPACE"
 if ! kubectl get secrets -n $NAMESPACE --ignore-not-found | grep -q regsecret ; then
     printinfo "Création du secret regsecret" 
     kubectl create secret docker-registry regsecret --namespace=$NAMESPACE \
