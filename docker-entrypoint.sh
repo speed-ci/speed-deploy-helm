@@ -168,6 +168,7 @@ fi
 
 printstep "Configuration de l'accès à la registry Docker privée pour le namespace $NAMESPACE"
 if ! kubectl get secrets -n $NAMESPACE --ignore-not-found | grep -q regsecret ; then
+    printinfo "Création du secret regsecret" 
     kubectl create secret docker-registry regsecret --namespace=$NAMESPACE \
                                                     --docker-server=$ARTIFACTORY_DOCKER_REGISTRY \
                                                     --docker-username=$ARTIFACTORY_USER \
@@ -175,6 +176,7 @@ if ! kubectl get secrets -n $NAMESPACE --ignore-not-found | grep -q regsecret ; 
                                                     --docker-email=speed@eramet-sln.nc \                        
 fi
 if ! kubectl get secrets regsecret -n $NAMESPACE --output="jsonpath={.data.\.dockerconfigjson}" | base64 -d | grep -q $ARTIFACTORY_PASSWORD ; then
+    printinfo "Mise à jour du secret regsecret" 
     ARTIFACTORY_FQDN=${ARTIFACTORY_URL##*/}
     ARTIFACTORY_DOCKER_REGISTRY=${ARTIFACTORY_DOCKER_REGISTRY:-"docker-$ARTIFACTORY_FQDN"} 
     kubectl delete secret regsecret --ignore-not-found=true --namespace=$NAMESPACE &&
