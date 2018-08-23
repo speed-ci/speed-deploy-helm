@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 
 source /init.sh
 
@@ -173,7 +173,7 @@ if ! kubectl get secrets -n $NAMESPACE --ignore-not-found | grep -q regsecret ; 
                                                     --docker-server=$ARTIFACTORY_DOCKER_REGISTRY \
                                                     --docker-username=$ARTIFACTORY_USER \
                                                     --docker-password=$ARTIFACTORY_PASSWORD \
-                                                    --docker-email=speed@eramet-sln.nc \                        
+                                                    --docker-email=speed@eramet-sln.nc
 fi
 if ! kubectl get secrets regsecret -n $NAMESPACE --output="jsonpath={.data.\.dockerconfigjson}" | base64 -d | grep -q $ARTIFACTORY_PASSWORD ; then
     printinfo "Mise à jour du secret regsecret" 
@@ -184,7 +184,7 @@ if ! kubectl get secrets regsecret -n $NAMESPACE --output="jsonpath={.data.\.doc
                                                     --docker-server=$ARTIFACTORY_DOCKER_REGISTRY \
                                                     --docker-username=$ARTIFACTORY_USER \
                                                     --docker-password=$ARTIFACTORY_PASSWORD \
-                                                    --docker-email=speed@eramet-sln.nc \                        
+                                                    --docker-email=speed@eramet-sln.nc
 fi
 if ! kubectl get sa -n $NAMESPACE --ignore-not-found | grep -q default ; then
     kubectl create sa default --namespace ${NAMESPACE}
