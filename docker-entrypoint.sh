@@ -35,7 +35,7 @@ Options:
   -e TIMEOUT=integer                      Durée d'attente en secondes du déploiement de la release avant interruption en erreur
   --env-file ~/speed.env                  Fichier contenant les variables d'environnement précédentes
   -v \$(pwd):/srv/speed                    Bind mount du répertoire racine de l'application à dockérizer
-  -v ~/.kube/config:~/.kube/config        Bind mount de la configuration d'accès au cluster kubernetes
+  -v ~/.kube:/srv/kubeconfig:ro           Bind mount du répertoire de configuration d'accès aux clusters kubernetes
 END
 }
 
