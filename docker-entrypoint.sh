@@ -236,15 +236,15 @@ helm repo remove local
 printcomment "helm repo add stable \$ARTIFACTORY_URL/artifactory/helm --username \$ARTIFACTORY_USER --password \$ARTIFACTORY_PASSWORD"
 helm repo add stable "$ARTIFACTORY_URL/artifactory/helm" --username "$ARTIFACTORY_USER" --password "$ARTIFACTORY_PASSWORD"
 
+printstep "Mise à jour des dépendances"
+printcomment "helm dependency update"
+helm dependency update
+
 printstep "Vérification de la syntaxe du chart $CHART_NAME"
 cp -r /srv/speed /srv/$CHART_NAME
 cd /srv/$CHART_NAME
 printcomment "helm lint"
 helm lint
-
-printstep "Mise à jour des dépendances"
-printcomment "helm dependency update"
-helm dependency update
 
 printstep "Vérification de l'historique de déploiement"
 if [[ `helm ls --failed --tiller-namespace $NAMESPACE | grep $RELEASE` ]]; then
