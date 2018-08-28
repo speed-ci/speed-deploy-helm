@@ -44,24 +44,47 @@ while read data; do echo "$data" | grep --color -ie "^.*\(ImagePullBackOff\|Cras
 # sed version : while read data; do echo "$data" | sed 's/\(.*ImagePullBackOff.*\|.*CrashLoopBackOff.*\|.*ErrImagePull.*\|.*Failed.*\|.*Error.*\)/'"$COLOR"'\1'"$OFF"'/' ; done;
 }
 
-function display_debug_info () {
-printinfo "Liste des pods"
-echo ""
-printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide"
-kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide
-echo ""
-for p in `kubectl get po -n $NAMESPACE -l release=$RELEASE -o name`;
-do
-  printinfo "Info de debug du pod $p"
+function display_hooks_debug_info () {
+  printinfo "Liste des hooks helm"
   echo ""
-  printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
-  kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
+  printcomment "kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE -o wide"
+  kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE -o wide
   echo ""
-  printcomment "kubectl logs $p -n $NAMESPACE"
-  echo "Logs:"
-  kubectl logs $p -n $NAMESPACE
+  for p in `kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE -o name`;
+  do
+    printinfo "Info de debug du hook $p"
+    echo ""
+    printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
+    kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
+    echo ""
+    for c in `kubectl get $p -o jsonpath={.spec.containers[*].name}`;
+    do
+      echo "Logs du container $c :"
+      printcomment "kubectl logs $p -c $c -n $NAMESPACE"
+      kubectl logs $p  -c $c -n $NAMESPACE
+      echo ""
+    done
+  done
+}
+
+function display_pods_debug_info () {
+  printinfo "Liste des pods"
   echo ""
-done
+  printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide"
+  kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide
+  echo ""
+  for p in `kubectl get po -n $NAMESPACE -l release=$RELEASE -o name`;
+  do
+    printinfo "Info de debug du pod $p"
+    echo ""
+    printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
+    kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
+    echo ""
+    printcomment "kubectl logs $p -n $NAMESPACE"
+    echo "Logs:"
+    kubectl logs $p -n $NAMESPACE
+    echo ""
+  done
 }
 
 while [ -n "$1" ]; do
@@ -265,12 +288,15 @@ printstep "Installation du chart"
 printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE"
 helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE && DEPLOY_STATUS="success"
 
-printstep "Affichage de l'historique de déploiement de la release $RELEASE"
-printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE"
-helm history $RELEASE --tiller-namespace $NAMESPACE
+printstep "Affichage de l'historique de déploiement de la release $RELEASE (si possible)"
+printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
+helm history $RELEASE --tiller-namespace $NAMESPACE || true
 
-printstep "Affichage des infos de debug des pods ayant pour label release $RELEASE"
-display_debug_info
+printstep "Affichage des infos de debug des hooks ayant le label app.kubernetes.io/instance=$RELEASE"
+display_hooks_debug_info
+
+printstep "Affichage des infos de debug des pods ayant le label release=$RELEASE"
+display_pods_debug_info
 
 HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | cut -f3`
 if [[ $HELM_STATUS == "FAILED"* ]]; then DEPLOY_STATUS="failed"; fi
