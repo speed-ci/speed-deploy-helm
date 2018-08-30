@@ -241,7 +241,7 @@ if ! kubectl get clusterrolebindings --ignore-not-found | grep -q $NAMESPACE-til
 EOF
 fi
 
-if ! kubectl get deploy -n dev --ignore-not-found | grep -q tiller-deploy ||
+if ! kubectl get deploy -n $NAMESPACE --ignore-not-found | grep -q tiller-deploy ||
    ! helm version --tiller-namespace $NAMESPACE --template "{{ .Server.SemVer }}" | grep -q $HELM_LATEST_VERSION ; then
     printcomment "helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --wait"
     helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --wait
