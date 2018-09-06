@@ -180,6 +180,8 @@ printinfo "RELEASE                     : $RELEASE"
 printinfo "TIMEOUT                     : $TIMEOUT"
 printinfo "BRANCH_KUBE_CONTEXT_MAPPING : $BRANCH_KUBE_CONTEXT_MAPPING"
 printinfo "BRANCH_NAMESPACE_MAPPING    : $BRANCH_NAMESPACE_MAPPING"
+printinfo "INGRESS_TLS_SECRET          : $INGRESS_TLS_SECRET"
+printinfo "INGRESS_TLS_NAMESPACE       : $INGRESS_TLS_NAMESPACE"
 
 printstep "Définition du contexte Kubernetes par défaut"
 printcomment "kubectl config use-context $KUBE_CONTEXT"
@@ -215,6 +217,15 @@ if ! kubectl get sa -n $NAMESPACE --ignore-not-found | grep -q default ; then
 fi
 if ! kubectl get sa -n $NAMESPACE default -o json | grep -q imagePullSecrets ; then
     kubectl patch sa -n $NAMESPACE default -p '{"imagePullSecrets": [{"name": "regsecret"}]}'
+fi
+
+if [[ $INGRESS_TLS_SECRET && $INGRESS_TLS_NAMESPACE ]]; then
+   printstep "Configuration du certificat ingress TLS $INGRESS_TLS_SECRET pour le namespace $NAMESPACE"
+   if ! kubectl get secrets -n $NAMESPACE --ignore-not-found | grep -q $INGRESS_TLS_SECRET ; then
+       printinfo "Copie du certificat TLS $INGRESS_TLS_SECRET depuis le namespace $INGRESS_TLS_NAMESPACE"
+       kubectl get secret -n $INGRESS_TLS_NAMESPACE $INGRESS_TLS_SECRET -o yaml --export | \
+       kubectl -n $NAMESPACE apply -f -
+   fi
 fi
 
 printstep "Installation de Tiller dans le namespace $NAMESPACE"
