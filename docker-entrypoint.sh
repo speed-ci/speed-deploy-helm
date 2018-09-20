@@ -236,7 +236,6 @@ if ! kubectl get sa -n $NAMESPACE tiller -o json | grep -q imagePullSecrets ; th
     kubectl patch sa -n $NAMESPACE tiller -p '{"imagePullSecrets": [{"name": "regsecret"}]}'
 fi
 if ! kubectl get roles -n $NAMESPACE --ignore-not-found | grep -q tiller-manager ; then
-    printinfo "Create role tiller-manager"
     cat <<EOF | kubectl create -f -
       kind: Role
       apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -249,7 +248,7 @@ if ! kubectl get roles -n $NAMESPACE --ignore-not-found | grep -q tiller-manager
         verbs: ["*"]
 EOF
 fi
-if ! kubectl get rolebindings --ignore-not-found | grep -q tiller-binding ; then
+if ! kubectl get rolebindings -n $NAMESPACE --ignore-not-found | grep -q tiller-binding ; then
     cat <<EOF | kubectl create -f -
       kind: RoleBinding
       apiVersion: rbac.authorization.k8s.io/v1beta1
