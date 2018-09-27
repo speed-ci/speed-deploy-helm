@@ -57,7 +57,7 @@ function display_hooks_debug_info () {
     printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
     kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
     echo ""
-    for c in `kubectl get $p -o jsonpath={.spec.containers[*].name}`;
+    for c in `kubectl get $p -n $NAMESPACE -o jsonpath={.spec.containers[*].name}`;
     do
       echo "Logs du container $c :"
       printcomment "kubectl logs $p -c $c -n $NAMESPACE"
