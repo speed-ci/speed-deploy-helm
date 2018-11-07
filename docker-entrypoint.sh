@@ -310,8 +310,8 @@ if [[ `helm ls --failed --tiller-namespace $NAMESPACE | grep $RELEASE` ]]; then
 fi
 
 printstep "Installation du chart"
-printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE"
-helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE && DEPLOY_STATUS="success"
+printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force"
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force && DEPLOY_STATUS="success"
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE (si possible)"
 printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
