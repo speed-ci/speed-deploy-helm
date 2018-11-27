@@ -45,23 +45,9 @@ while read data; do echo "$data" | grep --color -ie "^.*\(ImagePullBackOff\|Cras
 }
 
 function display_hooks_debug_info () {
-  printinfo "Liste des hooks helm de $1"
+  printcomment "kubectl logs -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -c updater-router-job -n $NAMESPACE"
+  kubectl logs -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -c updater-router-job -n $NAMESPACE
   echo ""
-  printcomment "kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -o wide"
-  kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -o wide
-  echo ""
-  for p in `kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -o name`;
-  do
-    printinfo "Info de debug du hook $p"
-    echo ""
-    printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
-    kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
-    echo ""
-    echo "Logs:"
-    printcomment "kubectl logs $p -c updater-router-job -n $NAMESPACE"
-    kubectl logs $p  -c updater-router-job -n $NAMESPACE
-    echo ""
-  done
 }
 
 function display_pods_debug_info () {
@@ -323,13 +309,13 @@ printstep "Affichage de l'historique de déploiement de la release $RELEASE (si 
 printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
 helm history $RELEASE --tiller-namespace $NAMESPACE || true
 
-printstep "Affichage des infos de debug des hooks de pre-init ayant le label app.kubernetes.io/instance=$RELEASE"
+printstep "Affichage des logs du hook de pre-init"
 display_hooks_debug_info pre-init
 
 printstep "Affichage des infos de debug des pods démarrés dans ce déploiement ayant le label release=$RELEASE"
 display_pods_debug_info
 
-printstep "Affichage des infos de debug des hooks de post-init ayant le label app.kubernetes.io/instance=$RELEASE"
+printstep "Affichage des logs du hook de post-init"
 display_hooks_debug_info post-init
 
 HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | cut -f3`
