@@ -309,13 +309,13 @@ printstep "Affichage de l'historique de déploiement de la release $RELEASE (si 
 printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
 helm history $RELEASE --tiller-namespace $NAMESPACE || true
 
-printstep "Affichage des logs du hook de pre-init"
+printmainstep "Affichage des logs du hook de pre-init"
 display_hooks_debug_info pre-init
 
-printstep "Affichage des infos de debug des pods démarrés dans ce déploiement ayant le label release=$RELEASE"
+printmainstep "Affichage des infos de debug des pods démarrés dans ce déploiement ayant le label release=$RELEASE"
 display_pods_debug_info
 
-printstep "Affichage des logs du hook de post-init"
+printmainstep "Affichage des logs du hook de post-init"
 display_hooks_debug_info post-init
 
 HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | cut -f3`
