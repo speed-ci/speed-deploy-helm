@@ -68,23 +68,31 @@ function display_hooks_debug_info () {
 }
 
 function display_pods_debug_info () {
-  printinfo "Liste des pods"
+  printinfo "Liste de tous les pods"
   echo ""
   printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide"
   kubectl get po -n $NAMESPACE -l release=$RELEASE -o wide
   echo ""
-  for p in `kubectl get po -n $NAMESPACE -l release=$RELEASE -o name`;
-  do
-    printinfo "Info de debug du pod $p"
-    echo ""
-    printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
-    kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
-    echo ""
-    printcomment "kubectl logs $p -n $NAMESPACE"
-    echo "Logs:"
-    kubectl logs $p -n $NAMESPACE
-    echo ""
-  done
+  printinfo "Affichage des infos de debug des pods démarrés dans ce déploiement"
+  echo ""
+  printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'"
+  NEW_PODS=`kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'`
+  if [ -z $NEW_PODS ]; then
+    printinfo "Aucun pod démarré dans ce déploiement"
+  else
+    for p in $NEW_PODS;
+    do
+      printinfo "Info de debug du pod $p"
+      echo ""
+      printcomment "kubectl describe po $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
+      kubectl describe po $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
+      echo ""
+      printcomment "kubectl logs $p -n $NAMESPACE"
+      echo "Logs:"
+      kubectl logs $p -n $NAMESPACE
+      echo ""
+    done
+  fi
 }
 
 while [ -n "$1" ]; do
@@ -310,6 +318,7 @@ if [[ `helm ls --failed --tiller-namespace $NAMESPACE | grep $RELEASE` ]]; then
 fi
 
 printstep "Installation du chart"
+DEPLOYMENT_STARTDATE=`jq -n 'now'`
 printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force"
 helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force && DEPLOY_STATUS="success"
 
@@ -320,13 +329,14 @@ helm history $RELEASE --tiller-namespace $NAMESPACE || true
 printstep "Affichage des infos de debug des hooks ayant le label app.kubernetes.io/instance=$RELEASE"
 display_hooks_debug_info
 
-printstep "Affichage des infos de debug des pods ayant le label release=$RELEASE"
+printstep "Affichage des infos de debug des pods démarrés dans ce déploiement ayant le label release=$RELEASE"
 display_pods_debug_info
 
 HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | cut -f3`
 if [[ $HELM_STATUS == "FAILED"* ]]; then DEPLOY_STATUS="failed"; fi
 
 if [[ $DEPLOY_STATUS != "success" ]]; then
+    echo ""
     printerror "Erreur lors du déploiement Helm"
     exit 1;
 fi
