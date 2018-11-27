@@ -45,25 +45,22 @@ while read data; do echo "$data" | grep --color -ie "^.*\(ImagePullBackOff\|Cras
 }
 
 function display_hooks_debug_info () {
-  printinfo "Liste des hooks helm"
+  printinfo "Liste des hooks helm de $1"
   echo ""
-  printcomment "kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE -o wide"
-  kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE -o wide
+  printcomment "kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -o wide"
+  kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -o wide
   echo ""
-  for p in `kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE -o name`;
+  for p in `kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -o name`;
   do
     printinfo "Info de debug du hook $p"
     echo ""
     printcomment "kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
     kubectl describe $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
     echo ""
-    for c in `kubectl get $p -n $NAMESPACE -o jsonpath={.spec.containers[*].name}`;
-    do
-      echo "Logs du container $c :"
-      printcomment "kubectl logs $p -c $c -n $NAMESPACE"
-      kubectl logs $p  -c $c -n $NAMESPACE
-      echo ""
-    done
+    echo "Logs:"
+    printcomment "kubectl logs $p -c updater-router-job -n $NAMESPACE"
+    kubectl logs $p  -c updater-router-job -n $NAMESPACE
+    echo ""
   done
 }
 
@@ -326,11 +323,14 @@ printstep "Affichage de l'historique de déploiement de la release $RELEASE (si 
 printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
 helm history $RELEASE --tiller-namespace $NAMESPACE || true
 
-printstep "Affichage des infos de debug des hooks ayant le label app.kubernetes.io/instance=$RELEASE"
-display_hooks_debug_info
+printstep "Affichage des infos de debug des hooks de pre-init ayant le label app.kubernetes.io/instance=$RELEASE"
+display_hooks_debug_info pre-init
 
 printstep "Affichage des infos de debug des pods démarrés dans ce déploiement ayant le label release=$RELEASE"
 display_pods_debug_info
+
+printstep "Affichage des infos de debug des hooks de post-init ayant le label app.kubernetes.io/instance=$RELEASE"
+display_hooks_debug_info post-init
 
 HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | cut -f3`
 if [[ $HELM_STATUS == "FAILED"* ]]; then DEPLOY_STATUS="failed"; fi
