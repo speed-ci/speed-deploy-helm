@@ -161,6 +161,10 @@ fi
 if [[ -z $NAMESPACE ]]; then
    NAMESPACE=${NAMESPACE_MAPPING_RULES[$BRANCH_NAME]:-$BRANCH_NAME}
 fi
+SPEED_UPDATER_ENABLED="false"
+if [[ -f templates/speed-update.yaml ]]; then
+   SPEED_UPDATER_ENABLED="true";
+fi
 RELEASE=$CHART_NAME
 TIMEOUT=${TIMEOUT:-300}
 
@@ -173,6 +177,7 @@ printinfo "BRANCH_KUBE_CONTEXT_MAPPING : $BRANCH_KUBE_CONTEXT_MAPPING"
 printinfo "BRANCH_NAMESPACE_MAPPING    : $BRANCH_NAMESPACE_MAPPING"
 printinfo "INGRESS_TLS_SECRET          : $INGRESS_TLS_SECRET"
 printinfo "INGRESS_TLS_NAMESPACE       : $INGRESS_TLS_NAMESPACE"
+printinfo "SPEED_UPDATER_ENABLED       : $SPEED_UPDATER_ENABLED"
 
 printstep "Définition du contexte Kubernetes par défaut"
 printcomment "kubectl config use-context $KUBE_CONTEXT"
@@ -309,14 +314,18 @@ printstep "Affichage de l'historique de déploiement de la release $RELEASE (si 
 printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
 helm history $RELEASE --tiller-namespace $NAMESPACE || true
 
-printmainstep "Affichage des logs du hook de pre-init"
-display_hooks_debug_info pre-init
+if [[ $SPEED_UPDATER_ENABLED == "true" ]]; then
+    printmainstep "Affichage des logs du hook de pre-init"
+    display_hooks_debug_info pre-init
+fi
 
 printmainstep "Affichage des infos de debug des pods démarrés dans ce déploiement ayant le label release=$RELEASE"
 display_pods_debug_info
 
-printmainstep "Affichage des logs du hook de post-init"
-display_hooks_debug_info post-init
+if [[ $SPEED_UPDATER_ENABLED == "true" ]]; then
+    printmainstep "Affichage des logs du hook de post-init"
+    display_hooks_debug_info post-init
+fi
 
 HELM_STATUS=`helm history $RELEASE --tiller-namespace $NAMESPACE | tail -n 1 | cut -f3`
 if [[ $HELM_STATUS == "FAILED"* ]]; then DEPLOY_STATUS="failed"; fi
