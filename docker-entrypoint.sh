@@ -60,7 +60,7 @@ function display_pods_debug_info () {
   echo ""
   printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'"
   NEW_PODS=`kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'`
-  if [ -z $NEW_PODS ]; then
+  if [[ -z $NEW_PODS ]]; then
     printinfo "Aucun pod démarré dans ce déploiement"
   else
     for p in $NEW_PODS;
