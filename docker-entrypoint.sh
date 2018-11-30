@@ -45,9 +45,18 @@ while read data; do echo "$data" | grep --color -ie "^.*\(ImagePullBackOff\|Cras
 }
 
 function display_hooks_debug_info () {
-  printcomment "kubectl logs -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -c updater-router-job -n $NAMESPACE"
-  kubectl logs -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -c updater-router-job -n $NAMESPACE
-  echo ""
+  printcomment "kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $DEPLOYMENT_STARTDATE) | .metadata.name'"
+  NEW_PODS=`kubectl get po -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE,speed-updater=$1 -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'`
+  if [[ -z $NEW_PODS ]]; then
+    printinfo "Aucun pod démarré dans ce déploiement"
+  else
+    for p in $NEW_PODS;
+    do
+        printcomment "kubectl logs $p -c updater-router-job -n $NAMESPACE"
+        kubectl logs $p -c updater-router-job -n $NAMESPACE
+        echo ""
+    done
+  fi
 }
 
 function display_pods_debug_info () {
@@ -58,7 +67,7 @@ function display_pods_debug_info () {
   echo ""
   printinfo "Affichage des infos de debug des pods démarrés dans ce déploiement"
   echo ""
-  printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'"
+  printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $DEPLOYMENT_STARTDATE) | .metadata.name'"
   NEW_PODS=`kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'`
   if [[ -z $NEW_PODS ]]; then
     printinfo "Aucun pod démarré dans ce déploiement"
@@ -315,7 +324,7 @@ printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
 helm history $RELEASE --tiller-namespace $NAMESPACE || true
 
 if [[ $SPEED_UPDATER_ENABLED == "true" ]]; then
-    printmainstep "Affichage des logs du hook de pre-init"
+    printmainstep "Affichage des logs du hook de pre-init si démarré dans ce déploiement"
     display_hooks_debug_info pre-init
 fi
 
@@ -323,7 +332,7 @@ printmainstep "Affichage des infos de debug des pods démarrés dans ce déploie
 display_pods_debug_info
 
 if [[ $SPEED_UPDATER_ENABLED == "true" ]]; then
-    printmainstep "Affichage des logs du hook de post-init"
+    printmainstep "Affichage des logs du hook de post-init si démarré dans ce déploiement"
     display_hooks_debug_info post-init
 fi
 
