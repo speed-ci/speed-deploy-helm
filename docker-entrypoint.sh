@@ -67,8 +67,8 @@ function display_pods_debug_info () {
   echo ""
   printinfo "Affichage des infos de debug des pods démarrés dans ce déploiement"
   echo ""
-  printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $DEPLOYMENT_STARTDATE) | .metadata.name'"
-  NEW_PODS=`kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate) | .metadata.name'`
+  printcomment "kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $DEPLOYMENT_STARTDATE) | select(.metadata.labels["speed-updater"]!="post-init" and .metadata.labels["speed-updater"]!="pre-init") | .metadata.name'"
+  NEW_PODS=`kubectl get po -n $NAMESPACE -l release=$RELEASE -ojson | jq -r --arg deployment_startdate $DEPLOYMENT_STARTDATE '.items[] | select(.metadata.creationTimestamp | fromdate | tostring > $deployment_startdate)  | select(.metadata.labels["speed-updater"]!="post-init" and .metadata.labels["speed-updater"]!="pre-init") | .metadata.name'`
   if [[ -z $NEW_PODS ]]; then
     printinfo "Aucun pod démarré dans ce déploiement"
   else
