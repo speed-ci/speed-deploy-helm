@@ -272,9 +272,9 @@ EOF
 fi
 
 if ! kubectl get deploy -n $NAMESPACE --ignore-not-found | grep -q tiller-deploy ||
-   ! helm version --tiller-namespace $NAMESPACE --template "{{ .Server.SemVer }}" | grep -q $HELM_LATEST_VERSION ; then
-    printcomment "helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --wait"
-    helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --wait
+   ! helm version --tiller-namespace $NAMESPACE --template "{{ .Server.SemVer }}" | grep -q $HELM_LATEST_VERSION; then
+    printcomment "helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --replicas=2 --override \"spec.template.spec.priorityClassName\"=\"sln-cluster-critical\" --wait"
+    helm init --upgrade --tiller-image $ARTIFACTORY_DOCKER_REGISTRY/kubernetes-helm/tiller:$HELM_LATEST_VERSION --skip-refresh --service-account tiller --tiller-namespace $NAMESPACE --replicas=2 --override "spec.template.spec.priorityClassName"="sln-cluster-critical" --wait
 fi
 
 printstep "Vérification de la configuration helm"
