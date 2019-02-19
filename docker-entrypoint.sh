@@ -170,10 +170,14 @@ fi
 if [[ -z $NAMESPACE ]]; then
    NAMESPACE=${NAMESPACE_MAPPING_RULES[$BRANCH_NAME]:-$BRANCH_NAME}
 fi
-SPEED_UPDATER_ENABLED="false"
-if [[ -f templates/speed-update.yaml ]]; then
-   SPEED_UPDATER_ENABLED="true";
+
+if [[ -z $SKIP_INIT ]]; then
+   SKIP_INIT="true"
+   if [[ -f templates/speed-update.yaml ]]; then
+      SKIP_INIT="false";
+   fi
 fi
+EXTRAS_VALUES="skipInit=$SKIP_INIT"
 RELEASE=$CHART_NAME
 TIMEOUT=${TIMEOUT:-300}
 
@@ -186,7 +190,7 @@ printinfo "BRANCH_KUBE_CONTEXT_MAPPING : $BRANCH_KUBE_CONTEXT_MAPPING"
 printinfo "BRANCH_NAMESPACE_MAPPING    : $BRANCH_NAMESPACE_MAPPING"
 printinfo "INGRESS_TLS_SECRET          : $INGRESS_TLS_SECRET"
 printinfo "INGRESS_TLS_NAMESPACE       : $INGRESS_TLS_NAMESPACE"
-printinfo "SPEED_UPDATER_ENABLED       : $SPEED_UPDATER_ENABLED"
+printinfo "SKIP_INIT                   : $SKIP_INIT"
 
 printstep "Définition du contexte Kubernetes par défaut"
 printcomment "kubectl config use-context $KUBE_CONTEXT"
@@ -316,14 +320,14 @@ fi
 
 printstep "Installation du chart"
 DEPLOYMENT_STARTDATE=`jq -n 'now'`
-printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force"
-helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force && DEPLOY_STATUS="success"
+printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force --set $EXTRAS_VALUES"
+helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force --set $EXTRAS_VALUES && DEPLOY_STATUS="success"
 
 printstep "Affichage de l'historique de déploiement de la release $RELEASE (si possible)"
 printcomment "helm history $RELEASE --tiller-namespace $NAMESPACE || true"
 helm history $RELEASE --tiller-namespace $NAMESPACE || true
 
-if [[ $SPEED_UPDATER_ENABLED == "true" ]]; then
+if [[ $SKIP_INIT == "false" ]]; then
     printmainstep "Affichage des logs du hook de pre-init si démarré dans ce déploiement"
     display_hooks_debug_info pre-init
 fi
@@ -331,7 +335,7 @@ fi
 printmainstep "Affichage des infos de debug des pods démarrés dans ce déploiement ayant le label release=$RELEASE"
 display_pods_debug_info
 
-if [[ $SPEED_UPDATER_ENABLED == "true" ]]; then
+if [[ $SKIP_INIT == "false" ]]; then
     printmainstep "Affichage des logs du hook de post-init si démarré dans ce déploiement"
     display_hooks_debug_info post-init
 fi
