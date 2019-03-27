@@ -52,8 +52,8 @@ function display_hooks_debug_info () {
   else
     for p in $NEW_PODS;
     do
-        printcomment "kubectl logs $p -c updater-router-job -n $NAMESPACE"
-        kubectl logs $p -c updater-router-job -n $NAMESPACE
+        printcomment "kubectl logs $p -c updater-router-job -n $NAMESPACE || /bin/true"
+        kubectl logs $p -c updater-router-job -n $NAMESPACE || /bin/true
         echo ""
     done
   fi
@@ -79,9 +79,9 @@ function display_pods_debug_info () {
       printcomment "kubectl describe po $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'"
       kubectl describe po $p -n $NAMESPACE | sed -e '/Events:/p' -e '0,/Events:/d'
       echo ""
-      printcomment "kubectl logs $p -n $NAMESPACE"
+      printcomment "kubectl logs $p -n $NAMESPACE || /bin/true"
       echo "Logs:"
-      kubectl logs $p -n $NAMESPACE
+      kubectl logs $p -n $NAMESPACE || /bin/true
       echo ""
     done
   fi
