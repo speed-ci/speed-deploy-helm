@@ -319,8 +319,8 @@ if [[ `helm ls --failed --tiller-namespace $NAMESPACE | grep $RELEASE` ]]; then
 fi
 
 printstep "Nettoyage des pods en erreur"
-printcomment "kubectl get pods --field-selector=status.phase=Failed -lrelease=$RELEASE"
-kubectl get pods --field-selector=status.phase=Failed -lrelease=$RELEASE
+printcomment "kubectl delete pods --field-selector=status.phase=Failed -lrelease=$RELEASE -n $NAMESPACE"
+kubectl delete pods --field-selector=status.phase=Failed -lrelease=$RELEASE -n $NAMESPACE
 
 printstep "Installation du chart"
 DEPLOYMENT_STARTDATE=`jq -n 'now'`
