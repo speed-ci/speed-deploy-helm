@@ -318,6 +318,10 @@ if [[ `helm ls --failed --tiller-namespace $NAMESPACE | grep $RELEASE` ]]; then
     fi
 fi
 
+printstep "Nettoyage des pods en erreur"
+printcomment "kubectl get pods --field-selector=status.phase=Failed -lrelease=$RELEASE"
+kubectl get pods --field-selector=status.phase=Failed -lrelease=$RELEASE
+
 printstep "Installation du chart"
 DEPLOYMENT_STARTDATE=`jq -n 'now'`
 printcomment "helm upgrade --namespace $NAMESPACE --install $RELEASE --wait . --timeout $TIMEOUT --tiller-namespace $NAMESPACE --force --set $EXTRAS_VALUES"
