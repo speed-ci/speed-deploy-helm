@@ -105,6 +105,10 @@ printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 init_helm_env
 
+printstep "Définition du contexte Kubernetes par défaut"
+printcomment "kubectl config use-context $KUBE_CONTEXT"
+kubectl config use-context $KUBE_CONTEXT
+
 CHART_FILE_NAME="Chart.yaml"
 if [ ! -f $CHART_FILE_NAME ]; then
     printerror "Le fichier de meta-données $CHART_FILE_NAME doit être présent dans le répertoire courrant"
