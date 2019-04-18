@@ -105,10 +105,6 @@ printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 init_helm_env
 
-printstep "Définition du contexte Kubernetes par défaut"
-printcomment "kubectl config use-context $KUBE_CONTEXT"
-kubectl config use-context $KUBE_CONTEXT
-
 CHART_FILE_NAME="Chart.yaml"
 if [ ! -f $CHART_FILE_NAME ]; then
     printerror "Le fichier de meta-données $CHART_FILE_NAME doit être présent dans le répertoire courrant"
@@ -142,6 +138,10 @@ printinfo "BRANCH_NAMESPACE_MAPPING    : $BRANCH_NAMESPACE_MAPPING"
 printinfo "INGRESS_TLS_SECRET          : $INGRESS_TLS_SECRET"
 printinfo "INGRESS_TLS_NAMESPACE       : $INGRESS_TLS_NAMESPACE"
 printinfo "SKIP_INIT                   : $SKIP_INIT"
+
+printstep "Définition du contexte Kubernetes par défaut"
+printcomment "kubectl config use-context $KUBE_CONTEXT"
+kubectl config use-context $KUBE_CONTEXT
 
 printstep "Création du namespace $NAMESPACE"
 if ! kubectl get ns --ignore-not-found | grep -q $NAMESPACE ; then
