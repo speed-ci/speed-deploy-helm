@@ -105,6 +105,14 @@ printstep "Vérification des paramètres d'entrée"
 init_artifactory_env
 init_helm_env
 
+if [[ -z $KUBE_CONTEXT ]]; then
+    DEFAULT_KUBE_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+    KUBE_CONTEXT=${KUBE_CONTEXT_MAPPING_RULES[$BRANCH_NAME]:-$DEFAULT_KUBE_CONTEXT}
+fi
+if [[ -z $NAMESPACE ]]; then
+    NAMESPACE=${NAMESPACE_MAPPING_RULES[$BRANCH_NAME]:-$BRANCH_NAME}
+fi  
+
 CHART_FILE_NAME="Chart.yaml"
 if [ ! -f $CHART_FILE_NAME ]; then
     printerror "Le fichier de meta-données $CHART_FILE_NAME doit être présent dans le répertoire courrant"
